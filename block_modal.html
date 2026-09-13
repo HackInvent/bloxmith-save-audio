@@ -1,0 +1,39 @@
+<div class="modal-panel block-config-modal cw-save-audio" role="dialog" aria-modal="true" aria-labelledby="{{ node_id }}BlockModalTitle" data-generic-block-modal-root data-save-audio-modal-root data-block-runtime-refresh="autonomous" data-node-id="{{ node_id }}" data-node-kind="{{ node_kind }}">
+  <div class="modal-header">
+    <div>
+      <span class="panel-kicker">Bloc {{ node_kind_title }}</span>
+      <h2 id="{{ node_id }}BlockModalTitle">{{ node_title }}</h2>
+    </div>
+    <div class="modal-actions"><button class="ghost-btn" data-close-block-modal type="button">Fermer</button></div>
+  </div>
+  <div class="block-config-modal-body save-audio-modal-body">
+    <section class="ports-editor-section">
+      <div class="ports-editor-header"><span class="group-label">Identité</span></div>
+      {{ title_field_html }}
+    </section>
+    <section class="ports-editor-section">
+      <div class="ports-editor-header"><span class="group-label">Destination</span></div>
+      {{ path_browser_html }}
+      <div class="field-grid save-audio-settings-grid">
+        <div class="field-group">
+          <label>Modèle du nom</label>
+          <input data-save-audio-filename-template type="text" maxlength="180" value="{{ filename_template }}" spellcheck="false" />
+        </div>
+        <div class="field-group">
+          <label>Attente des dernières trames après stop (s)</label>
+          <input data-save-audio-idle-finalize-sec type="number" min="0.25" max="30" step="0.25" value="{{ idle_finalize_sec }}" />
+        </div>
+      </div>
+      <p class="inspector-copy">Reliez audio_in et command_in. Run lance l'écoute ; start arme une session ; stop finalise le fichier. Placeholders : <code>{node_id}</code>, <code>{timestamp}</code>, <code>{stream_id}</code>, <code>{codec}</code>.</p>
+      <div class="inspector-actions"><button class="solid-btn" data-save-audio-apply type="button" disabled>Appliquer</button></div>
+    </section>
+    <section class="ports-editor-section">
+      <div class="ports-editor-header"><span class="group-label">Ports audio et commandes</span></div>
+      {{ ports_html }}
+    </section>
+    <section class="ports-editor-section">
+      <div class="ports-editor-header"><span class="group-label">Dernier état</span></div>
+      {{ runtime_html }}
+    </section>
+  </div>
+</div>
