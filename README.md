@@ -1,7 +1,7 @@
 # Save Audio
 
 <!-- block-metadata:start -->
-[![Block version: 1.0.0](https://img.shields.io/badge/block-1.0.0-blue)](model.json)
+[![Block version: 0.1.0](https://img.shields.io/badge/block-0.1.0-blue)](model.json)
 [![BloxSmith compatibility: 1.0.9](https://img.shields.io/badge/BloxSmith-1.0.9-brightgreen)](compatibility.json)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
 
@@ -13,7 +13,7 @@ Records an encoded audio stream to a chosen directory on explicit command. The b
 
 ## Version and declared compatibility
 
-Block version: **1.0.0**, the first version explicitly declared in the manifest.
+Block version: **0.1.0**, following the shared initial-version policy.
 Declared and tested framework version: **BloxSmith 1.0.9**, in `centralized` and `zeromq_active` modes. These tests do not establish compatibility with other versions.
 
 ## Ports and wiring

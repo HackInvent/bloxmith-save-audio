@@ -148,7 +148,7 @@ def test_model_preparation_validation_and_simulation() -> None:
     """Validate FB5/FB6 release declarations, model invariants, settings and simulation."""
 
     block = SaveAudioBlock()
-    expect(block.model["version"] == "1.0.0", "Save Audio declares its first explicit release version.")
+    expect(block.model["version"] == "0.1.0", "Save Audio declares the shared initial release version.")
     expect(block.model["tested_with_bloxsmith"] == (ROOT_DIR / "VERSION").read_text().strip(),
            "The tested BloxSmith version must match the actual framework release.")
     expect(block.model["bloxsmith_compatibility"] == [block.model["tested_with_bloxsmith"]],
