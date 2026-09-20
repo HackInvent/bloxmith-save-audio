@@ -62,6 +62,8 @@ from ui_smoke_common import (  # noqa: E402
     wait_for_run_predicate,
     wait_for_run_terminal,
 )
+from urllib.parse import quote
+from block_test_packages import install_test_package, release_key, surface_payload
 
 
 WEBM_HEADER = b"\x1aE\xdf\xa3webm-header"
@@ -361,18 +363,16 @@ def test_owned_ui_api() -> None:
     expect("data-save-audio-apply" in block.render_inspector_panel(node=node)["html"], "Inspector must own its apply action.")
 
     with isolated_server() as server:
-        rendered = http_json(
-            server.base_url,
-            "/api/blocks/save_audio/inspector-panel",
-            method="POST",
-            payload={"node": node},
-        )
+        # Les surfaces sont des assets de release : le bundled kind n'en sert aucun.
+        model = install_test_package(server, "save_audio")
+        key = quote(release_key(model), safe="")
+        served = lambda payload, suffix: next(
+            asset["path"] for asset in payload["assets"] if asset["path"].endswith(suffix))
+        rendered = surface_payload(server, model, node, "inspector_panel")
         html = str(rendered.get("html") or "")
         expect('data-path-browser-select-mode="directory"' in html, "Save Audio must browse directories, not files.")
         assets = rendered.get("assets") or []
-        expect({"kind": "js", "path": "assets/js/common.js"} in assets, "Shared block-local settings JS is missing.")
-        expect({"kind": "js", "path": "assets/js/inspector_panel.js"} in assets, "Inspector JS is missing.")
-        with urlopen(f"{server.base_url}/api/blocks/save_audio/assets/assets/js/common.js", timeout=5) as response:
+        with urlopen(f"{server.base_url}/api/blocks/{key}/assets/{served(rendered, 'assets/js/common.js')}", timeout=5) as response:
             common_js = response.read().decode("utf-8")
         expect("inspector_update_save_audio" in common_js, "The asset must call a Save Audio-owned action.")
         expect("runtimeAudioStreams" not in common_js, "The settings surface must not implement the audio data plane.")

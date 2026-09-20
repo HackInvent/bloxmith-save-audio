@@ -1,27 +1,27 @@
-.save-audio-node-card .node-owned-card-preview,
-.cw-save-audio .inspector-copy {
+[data-block-release="save_audio@0.1.0"] .save-audio-node-card .node-owned-card-preview,
+[data-block-release="save_audio@0.1.0"] .cw-save-audio .inspector-copy {
   overflow-wrap: anywhere;
 }
 
-.save-audio-node-card .node-owned-card-preview:first-of-type {
+[data-block-release="save_audio@0.1.0"] .save-audio-node-card .node-owned-card-preview:first-of-type {
   color: #0e7490;
 }
 
-.save-audio-modal-body {
+[data-block-release="save_audio@0.1.0"] .save-audio-modal-body {
   display: grid;
   gap: 14px;
   max-height: min(72vh, 760px);
   overflow: auto;
 }
 
-.save-audio-settings-grid {
+[data-block-release="save_audio@0.1.0"] .save-audio-settings-grid {
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(140px, 1fr);
   gap: 10px;
 }
 
 @media (max-width: 760px) {
-  .save-audio-settings-grid {
+  [data-block-release="save_audio@0.1.0"] .save-audio-settings-grid {
     grid-template-columns: 1fr;
   }
 }

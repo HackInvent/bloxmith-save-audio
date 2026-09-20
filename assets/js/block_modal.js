@@ -5,15 +5,9 @@
  * Created Date: 2026-09-04
  */
 
-(function () {
-  "use strict";
+import { mountEditor } from "./common.js";
 
-  const registry = (window.CWBlockUiBlocks = window.CWBlockUiBlocks || {});
-
-  registry.save_audio = {
-    /** Mount modal fields through the Save Audio block-owned action. */
-    mount(root, api) {
-      window.CWSaveAudioBlockUi?.mountEditor?.(root, api, { actionName: "modal_update_save_audio" });
-    },
-  };
-})();
+/** Mount modal fields through the Save Audio block-owned action. */
+export function mount(root, api) {
+  mountEditor(root, api, { actionName: "modal_update_save_audio" });
+}

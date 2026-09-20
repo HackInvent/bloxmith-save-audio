@@ -106,25 +106,6 @@ class SaveAudioBlock(BlockDefinition):
 
     kind = "save_audio"
 
-    def ui_assets(self, surface: str = "modal") -> list[dict[str, str]]:
-        """Return block-owned assets for settings and directory browsing."""
-
-        if surface == "modal":
-            return [
-                {"kind": "css", "path": "assets/css/block_ui.css"},
-                {"kind": "js", "path": "assets/js/common.js"},
-                {"kind": "js", "path": "assets/js/block_modal.js"},
-            ]
-        if surface == "inspector_panel":
-            return [
-                {"kind": "css", "path": "assets/css/block_ui.css"},
-                {"kind": "js", "path": "assets/js/common.js"},
-                {"kind": "js", "path": "assets/js/inspector_panel.js"},
-            ]
-        if surface == "node_card":
-            return [{"kind": "css", "path": "assets/css/block_ui.css"}]
-        return []
-
     def render_node_card(
         self,
         *,
