@@ -191,7 +191,7 @@ def test_model_preparation_validation_and_simulation() -> None:
         action="modal_update_save_audio",
         values={"output_dir": "exports", "filename_template": "take_{unknown}", "idle_finalize_sec": 1},
     )
-    expect("Placeholder" in str(invalid.get("error") or ""), "Unknown filename placeholders must fail before writing.")
+    expect("placeholder" in str(invalid.get("error") or "").lower(), "Unknown filename placeholders must fail before writing.")
     try:
         block._config({"filename_template": "{"})
     except SaveAudioBlockError:

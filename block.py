@@ -116,7 +116,7 @@ class SaveAudioBlock(BlockDefinition):
 
         runtime = (payload or {}).get("runtime") or node.get("runtimeUi") or {}
         result = runtime.get("result") or runtime
-        status = str(result.get("last_message") or "Run : écoute · start : enregistrer · stop : sauvegarder")
+        status = str(result.get("last_message") or "Run: listening · start: record · stop: save")
         config = self._config(node.get("config"))
         return render_node_card_template(
             block=self,
@@ -232,7 +232,7 @@ class SaveAudioBlock(BlockDefinition):
                 )
             raw = context.input_value("command_in")
             if raw is None or raw == "":
-                return BlockRuntimeResult(status="skipped", last_message="En écoute de command_in.")
+                return BlockRuntimeResult(status="skipped", last_message="Listening on command_in.")
             command = self._validate_command(raw)
             sender = context.services.get("runtime_listener")
             if sender is None:
@@ -255,16 +255,16 @@ class SaveAudioBlock(BlockDefinition):
                 raise SaveAudioBlockError("command_in attend un objet JSON start/stop.") from exc
         if (not isinstance(raw, Mapping) or not isinstance(raw.get("action"), str)
                 or raw["action"] not in {"start", "stop"}):
-            raise SaveAudioBlockError("command_in attend une action start ou stop.")
+            raise SaveAudioBlockError("command_in expects a start or stop action.")
         stream_id = raw.get("stream_id")
         if not isinstance(stream_id, str) or not stream_id.strip() or len(stream_id) > 128:
-            raise SaveAudioBlockError("La commande doit identifier un stream_id valide.")
+            raise SaveAudioBlockError("The command must identify a valid stream_id.")
         command = {"action": raw["action"], "stream_id": stream_id}
         if command["action"] == "stop":
             for key in ("frame_count", "byte_count"):
                 value = raw.get(key)
                 if type(value) is not int or not 0 <= value <= 9_007_199_254_740_991:
-                    raise SaveAudioBlockError(f"Compteur de fin invalide : {key}.")
+                    raise SaveAudioBlockError(f"Invalid final counter: {key}.")
                 command[key] = value
             if type(raw.get("aborted", False)) is not bool:
                 raise SaveAudioBlockError("The aborted field must be a boolean.")
@@ -364,10 +364,10 @@ class SaveAudioBlock(BlockDefinition):
                             pending = remaining
                         elif command["action"] == "stop":
                             if stream_id not in sessions:
-                                raise SaveAudioBlockError("Stop reçu sans start pour ce flux.")
+                                raise SaveAudioBlockError("Stop received without a start for this stream.")
                             session = sessions[stream_id]
                             if session["stop"] is not None and session["stop"] != command:
-                                raise SaveAudioBlockError("Compteurs stop contradictoires pour le même flux.")
+                                raise SaveAudioBlockError("Conflicting stop counters for the same stream.")
                             if session["stop"] is None:
                                 session["stop"] = command
                                 session["deadline"] = now + config["idle_finalize_sec"]
@@ -392,7 +392,7 @@ class SaveAudioBlock(BlockDefinition):
                     count = recording.frames if recording else 0
                     size = recording.bytes_written if recording else 0
                     if count > stop["frame_count"] or size > stop["byte_count"]:
-                        raise SaveAudioBlockError("Flux incohérent avec les compteurs stop.")
+                        raise SaveAudioBlockError("Stream inconsistent with the stop counters.")
                     if count == stop["frame_count"] and size == stop["byte_count"]:
                         if recording:
                             saved_files.append(self._finalize_recording(recording, context.root_dir))
@@ -428,9 +428,9 @@ class SaveAudioBlock(BlockDefinition):
         output_dir = str(source.get("output_dir") or DEFAULT_OUTPUT_DIR).strip() or DEFAULT_OUTPUT_DIR
         filename_template = str(source.get("filename_template") or DEFAULT_FILENAME_TEMPLATE).strip()
         if len(output_dir) > 1_024:
-            raise SaveAudioBlockError("Le répertoire de sortie dépasse 1 024 caractères.")
+            raise SaveAudioBlockError("The output directory exceeds 1,024 characters.")
         if not filename_template or len(filename_template) > 180:
-            raise SaveAudioBlockError("Le modèle de nom doit contenir entre 1 et 180 caractères.")
+            raise SaveAudioBlockError("The name template must contain between 1 and 180 characters.")
         self._validate_filename_template(filename_template)
         try:
             idle_finalize_sec = float(source.get("idle_finalize_sec", DEFAULT_IDLE_FINALIZE_SEC))
@@ -450,13 +450,13 @@ class SaveAudioBlock(BlockDefinition):
         try:
             fields = tuple(Formatter().parse(filename_template))
         except ValueError as exc:
-            raise SaveAudioBlockError("Le modèle de nom de fichier contient des accolades invalides.") from exc
+            raise SaveAudioBlockError("The file name template contains invalid braces.") from exc
         for _literal, field_name, format_spec, conversion in fields:
             if field_name is None:
                 continue
             if field_name not in ALLOWED_FILENAME_FIELDS or format_spec or conversion:
                 allowed = ", ".join(sorted(ALLOWED_FILENAME_FIELDS))
-                raise SaveAudioBlockError(f"Placeholder de nom invalide. Valeurs autorisées : {allowed}.")
+                raise SaveAudioBlockError(f"Invalid name placeholder. Allowed values: {allowed}.")
 
     @staticmethod
     def _resolve_output_dir(root_dir: Path, configured_dir: str) -> Path:
@@ -497,7 +497,7 @@ class SaveAudioBlock(BlockDefinition):
             handle = temporary_path.open("xb")
         except OSError as exc:
             final_path.unlink(missing_ok=True)
-            raise SaveAudioBlockError(f"Impossible de créer le fichier audio temporaire : {exc}") from exc
+            raise SaveAudioBlockError(f"Unable to create the temporary audio file: {exc}") from exc
         return _OpenAudioRecording(
             stream_id=frame.stream_id,
             codec=frame.codec,
@@ -600,10 +600,10 @@ class SaveAudioBlock(BlockDefinition):
             except FileExistsError:
                 continue
             except OSError as exc:
-                raise SaveAudioBlockError(f"Impossible de réserver le fichier audio : {exc}") from exc
+                raise SaveAudioBlockError(f"Unable to reserve the audio file: {exc}") from exc
             else:
                 return candidate
-        raise SaveAudioBlockError("Impossible de choisir un nom audio unique après 10 000 essais.")
+        raise SaveAudioBlockError("Unable to choose a unique audio name after 10,000 attempts.")
 
     @staticmethod
     def _display_path(path: Path, root_dir: Path) -> str:
@@ -619,13 +619,13 @@ class SaveAudioBlock(BlockDefinition):
 
         return render_path_browser_control(
             input_id=input_id,
-            label="Répertoire de sortie",
+            label="Output directory",
             value=str(config["output_dir"]),
             placeholder=DEFAULT_OUTPUT_DIR,
             input_attrs="data-save-audio-output-dir",
             select_mode="directory",
-            status="Choisissez le dossier qui recevra un fichier par session audio.",
-            use_current_label="Enregistrer dans ce dossier",
+            status="Choose the folder that will receive one file per audio session.",
+            use_current_label="Save into this folder",
         )
 
     @staticmethod
