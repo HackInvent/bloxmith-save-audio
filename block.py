@@ -83,7 +83,7 @@ class _OpenAudioRecording:
             or frame.sample_rate_hz != self.sample_rate_hz
             or frame.channels != self.channels
         ):
-            raise SaveAudioBlockError("Les métadonnées audio ont changé au sein d'un même stream_id.")
+            raise SaveAudioBlockError("The audio metadata changed within a single stream_id.")
         sequence_gap = self.frames > 0 and frame.sequence != self.last_sequence + 1
         self.handle.write(frame.payload)
         self.frames += 1
@@ -227,7 +227,7 @@ class SaveAudioBlock(BlockDefinition):
             self._config(context.config)
             if context.runtime_mode != "zeromq_active":
                 return BlockRuntimeResult(
-                    status="skipped", last_message="L'enregistrement est disponible uniquement en Active Runtime.",
+                    status="skipped", last_message="Recording is available in Active Runtime only.",
                     metadata={"save_audio": {"saved_files": [], "state": "simulation"}},
                 )
             raw = context.input_value("command_in")
@@ -236,10 +236,10 @@ class SaveAudioBlock(BlockDefinition):
             command = self._validate_command(raw)
             sender = context.services.get("runtime_listener")
             if sender is None:
-                raise SaveAudioBlockError("L'écoute Save Audio n'est pas chargée : Stop puis Run.")
+                raise SaveAudioBlockError("The Save Audio listener is not loaded: Stop, then Run.")
             sender.send(command)
             return BlockRuntimeResult(
-                last_message=f"Commande {command['action']} transmise à l'écoute audio.",
+                last_message=f"Command {command['action']} forwarded to the audio listener.",
                 logs=[f"[save-audio-command] {context.node_id}: {command['action']}."],
             )
         except (ValueError, RuntimeListenerError) as exc:
@@ -267,7 +267,7 @@ class SaveAudioBlock(BlockDefinition):
                     raise SaveAudioBlockError(f"Compteur de fin invalide : {key}.")
                 command[key] = value
             if type(raw.get("aborted", False)) is not bool:
-                raise SaveAudioBlockError("Le champ aborted doit être booléen.")
+                raise SaveAudioBlockError("The aborted field must be a boolean.")
             command["aborted"] = raw.get("aborted", False)
         return command
 
@@ -310,18 +310,18 @@ class SaveAudioBlock(BlockDefinition):
                     output_dir=output_dir, node_id=context.node_id, config=config, frame=frame, now=now,
                 )
             if session["recording"].append(frame, now=now):
-                raise SaveAudioBlockError("Flux incomplet : trames audio perdues ou réordonnées.")
+                raise SaveAudioBlockError("Incomplete stream: audio frames lost or reordered.")
             frames_received += 1
             bytes_written += len(frame.payload)
             if first:
-                emit("recording", "Enregistrement audio en cours.")
+                emit("recording", "Audio recording in progress.")
 
         try:
             config = self._config(context.config)
             output_dir = self._resolve_output_dir(context.root_dir, config["output_dir"])
             client = context.services.get("runtime_audio_streams")
             if not isinstance(client, RuntimeAudioStreamClient) or not client.available:
-                raise SaveAudioBlockError("Reliez audio_in à une sortie audio active compatible.")
+                raise SaveAudioBlockError("Wire audio_in to a compatible active audio output.")
             while not context.stop_requested():
                 now = time.monotonic()
                 while pending and now - pending[0][0] > 5.0:
@@ -346,13 +346,13 @@ class SaveAudioBlock(BlockDefinition):
                                     remaining.append((arrived, frame))
                             pending = remaining
                             retired.append(stream_id)
-                            emit("cancelled", "Flux audio annulé par la source ; enregistrement abandonné. "
-                                 "En écoute des prochains flux.", stream_id=stream_id)
+                            emit("cancelled", "Audio stream cancelled by the source; recording dropped. "
+                                 "Listening for the next streams.", stream_id=stream_id)
                         elif command["action"] == "start" and stream_id not in sessions:
                             if len(sessions) >= 4:
-                                raise SaveAudioBlockError("Trop de sessions audio simultanées (maximum 4).")
+                                raise SaveAudioBlockError("Too many concurrent audio sessions (maximum 4).")
                             sessions[stream_id] = {"recording": None, "stop": None, "deadline": None}
-                            emit("armed", "Start reçu ; attente du flux audio.")
+                            emit("armed", "Start received; waiting for the audio stream.")
                             # Audio may precede start on the independent message link.
                             remaining = deque()
                             for arrived, frame in pending:
@@ -398,15 +398,15 @@ class SaveAudioBlock(BlockDefinition):
                             saved_files.append(self._finalize_recording(recording, context.root_dir))
                             saved_files[:] = saved_files[-20:]
                             session["recording"] = None
-                            emit("saved", f"Fichier sauvegardé : {saved_files[-1]['path']}")
+                            emit("saved", f"File saved: {saved_files[-1]['path']}")
                         else:
-                            emit("idle", "Capture vide : aucun fichier créé.")
+                            emit("idle", "Empty capture: no file created.")
                         del sessions[stream_id]
                         retired.append(stream_id)
                     elif now >= session["deadline"]:
                         raise SaveAudioBlockError(
-                            f"Flux incomplet après stop : {count}/{stop['frame_count']} trames, "
-                            f"{size}/{stop['byte_count']} octets reçus."
+                            f"Incomplete stream after stop: {count}/{stop['frame_count']} frames, "
+                            f"{size}/{stop['byte_count']} bytes received."
                         )
         except (ValueError, OSError, RuntimeAudioStreamError) as exc:
             if not context.stop_requested():
@@ -465,7 +465,7 @@ class SaveAudioBlock(BlockDefinition):
         path = Path(str(configured_dir or DEFAULT_OUTPUT_DIR)).expanduser()
         resolved = path.resolve() if path.is_absolute() else (root_dir.resolve() / path).resolve()
         if resolved.exists() and not resolved.is_dir():
-            raise SaveAudioBlockError(f"Le répertoire de sortie désigne un fichier : {resolved}")
+            raise SaveAudioBlockError(f"The output directory points to a file: {resolved}")
         return resolved
 
     def _open_recording(
@@ -522,7 +522,7 @@ class SaveAudioBlock(BlockDefinition):
             os.replace(recording.temporary_path, recording.final_path)
         except OSError as exc:
             self._abort_recording(recording)
-            raise SaveAudioBlockError(f"Impossible de finaliser le fichier audio : {exc}") from exc
+            raise SaveAudioBlockError(f"The audio file could not be finalized: {exc}") from exc
         return {
             "path": self._display_path(recording.final_path, root_dir),
             "absolute_path": str(recording.final_path),
@@ -560,7 +560,7 @@ class SaveAudioBlock(BlockDefinition):
         except OSError as exc:
             errors.append(exc)
         if strict and errors:
-            raise SaveAudioBlockError(f"Impossible de nettoyer l'enregistrement annulé : {errors[0]}") from errors[0]
+            raise SaveAudioBlockError(f"The cancelled recording could not be cleaned up: {errors[0]}") from errors[0]
 
     @staticmethod
     def _audio_extension(payload: bytes, codec: str) -> str:
@@ -648,7 +648,7 @@ class SaveAudioBlock(BlockDefinition):
         """Build one bounded completion log without including binary payloads."""
 
         return (
-            f"[save-audio] {node_id}: {metadata.get('path')} finalisé après {reason} "
+            f"[save-audio] {node_id}: {metadata.get('path')} finalized after {reason} "
             f"({metadata.get('frames')} trame(s), {metadata.get('bytes')} octets)."
         )
 

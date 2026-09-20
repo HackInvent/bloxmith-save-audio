@@ -6,41 +6,41 @@
       <span class="inspector-node-tag">{{ node_tag }}</span>
     </div>
     <div class="inspector-tabs">
-      <button class="inspector-tab {{ general_active }}" data-inspector-tab="general" type="button">Général</button>
+      <button class="inspector-tab {{ general_active }}" data-inspector-tab="general" type="button">General</button>
       <button class="inspector-tab {{ ports_active }} {{ ports_tab_hidden }}" data-inspector-tab="ports" type="button" {{ ports_tab_disabled }}>Ports</button>
     </div>
   </div>
 
   <div class="inspector-view {{ general_hidden }}" data-inspector-panel-tab="general">
     <div class="field-group {{ title_hidden }}">
-      <label>Nom du node</label>
+      <label>Node name</label>
       <input data-node-title-input type="text" placeholder="{{ node_title_placeholder }}" value="{{ node_title }}" />
     </div>
     {{ path_browser_html }}
     <div class="field-group">
-      <label>Modèle du nom</label>
+      <label>Name template</label>
       <input data-save-audio-filename-template type="text" maxlength="180" value="{{ filename_template }}" spellcheck="false" />
     </div>
     <div class="field-group">
-      <label>Attente des dernières trames après stop (s)</label>
+      <label>Wait for the last frames after stop (s)</label>
       <input data-save-audio-idle-finalize-sec type="number" min="0.25" max="30" step="0.25" value="{{ idle_finalize_sec }}" />
     </div>
-    <p class="inspector-copy">Run lance l'écoute. Les commandes start/stop arrivent séparément sur command_in. Ce délai sert uniquement à attendre les derniers morceaux annoncés par stop.</p>
-    <div class="inspector-actions"><button class="solid-btn" data-block-inspector-apply data-save-audio-apply type="button" disabled>Appliquer</button></div>
+    <p class="inspector-copy">Run starts listening. The start and stop commands arrive separately on command_in. This delay is used only to wait for the last chunks announced by stop.</p>
+    <div class="inspector-actions"><button class="solid-btn" data-block-inspector-apply data-save-audio-apply type="button" disabled>Apply</button></div>
   </div>
 
   <div class="inspector-view {{ ports_hidden }}" data-inspector-panel-tab="ports">
     <div class="ports-editor-section">
       <div class="ports-editor-header">
-        <span class="group-label">Entrées audio et commandes</span>
-        <button class="ghost-btn add-port-btn {{ add_input_hidden }}" data-add-input-port type="button" {{ add_input_disabled }}>+ Ajouter une entrée</button>
+        <span class="group-label">Audio and command inputs</span>
+        <button class="ghost-btn add-port-btn {{ add_input_hidden }}" data-add-input-port type="button" {{ add_input_disabled }}>+ Add an input</button>
       </div>
       <div class="ports-editor-list">{{ inputs_html }}</div>
     </div>
     <div class="ports-editor-section">
       <div class="ports-editor-header">
-        <span class="group-label">Sorties</span>
-        <button class="ghost-btn add-port-btn {{ add_output_hidden }}" data-add-output-port type="button" {{ add_output_disabled }}>+ Ajouter une sortie</button>
+        <span class="group-label">Outputs</span>
+        <button class="ghost-btn add-port-btn {{ add_output_hidden }}" data-add-output-port type="button" {{ add_output_disabled }}>+ Add an output</button>
       </div>
       <div class="ports-editor-list">{{ outputs_html }}</div>
     </div>

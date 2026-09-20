@@ -357,13 +357,13 @@ def test_owned_ui_api() -> None:
     block = SaveAudioBlock()
     node = block.build_node_payload(node_id="save-audio-ui")
     expect("exports/audio-streams" in block.render_node_card(node=node)["html"], "Card must show the target directory.")
-    live = block.render_node_card(node=node, payload={"runtime": {"result": {"last_message": "Fichier <sauvegardé>"}}})
-    expect("Fichier &lt;sauvegardé&gt;" in live["html"], "Card must display and escape the live recording status.")
+    live = block.render_node_card(node=node, payload={"runtime": {"result": {"last_message": "File <saved>"}}})
+    expect("File &lt;saved&gt;" in live["html"], "Card must display and escape the live recording status.")
     expect("data-path-browser" in block.render_modal(node=node)["html"], "Modal must render the directory browser.")
     expect("data-save-audio-apply" in block.render_inspector_panel(node=node)["html"], "Inspector must own its apply action.")
 
     with isolated_server() as server:
-        # Les surfaces sont des assets de release : le bundled kind n'en sert aucun.
+        # Surfaces are release assets: a bundled kind serves none of them.
         model = install_test_package(server, "save_audio")
         key = quote(release_key(model), safe="")
         served = lambda payload, suffix: next(
@@ -589,7 +589,7 @@ def test_graph_browser_ingress_end_to_end(*, play_sources: bool = False) -> None
         stop_run_api(server, run_id)
         final_run = get_run_api(server, run_id)
         expect(
-            any("Fichier sauvegardé" in line for line in final_run.get("logs", [])),
+            any("File saved" in line for line in final_run.get("logs", [])),
             "The persistent receiver must log successful finalization before manual Stop completes.",
         )
 

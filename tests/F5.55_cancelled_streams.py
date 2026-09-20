@@ -186,7 +186,7 @@ def test_real_tts_interruptions_then_save_on_the_same_run():
             publisher.connect(engine._active_sessions[run.run_id].pub_endpoint)
             time.sleep(.2)  # Only this diagnostic publisher bypasses the production readiness gate.
             for index in range(3):
-                publish("text", f"Réponse interrompue {index}", index + 1)
+                publish("text", f"Interrupted answer {index}", index + 1)
                 fixtures.until(lambda: saved_state().get("state") == "recording", "TTS must reach Save Audio before interrupt.")
                 publish("command", control.INTERRUPT, index + 1, "application/json")
                 fixtures.until(lambda: saved_state().get("state") == "cancelled",
@@ -195,7 +195,7 @@ def test_real_tts_interruptions_then_save_on_the_same_run():
                 assert not saved_state()["saved_files"] and not list(target.iterdir())
                 assert json.loads(run.output_values["tts:2"]["value"])["aborted"] is True
 
-            publish("text", "Réponse complète après interruptions", 4)
+            publish("text", "Complete answer after interruptions", 4)
             api.release.set()
             fixtures.until(lambda: saved_state().get("state") == "saved", "The same Run must save the next TTS response.")
             files = saved_state()["saved_files"]
