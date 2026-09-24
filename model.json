@@ -75,7 +75,7 @@
     "file_browser": true,
     "centralized_executor": "generic",
     "supports_runtime_audio_streams": true,
-    "active_execution_policy": "all_inputs_ready"
+    "active_execution_policy": "on_each_event"
   },
   "ui_assets": {
     "modal": [
@@ -90,6 +90,14 @@
       {
         "kind": "js",
         "path": "assets/js/block_modal.js"
+      },
+      {
+        "kind": "css",
+        "path": "assets/css/properties.css"
+      },
+      {
+        "kind": "js",
+        "path": "assets/js/properties.js"
       }
     ],
     "inspector_panel": [
@@ -104,6 +112,14 @@
       {
         "kind": "js",
         "path": "assets/js/inspector_panel.js"
+      },
+      {
+        "kind": "css",
+        "path": "assets/css/properties.css"
+      },
+      {
+        "kind": "js",
+        "path": "assets/js/properties.js"
       }
     ],
     "node_card": [

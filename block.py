@@ -230,17 +230,27 @@ class SaveAudioBlock(BlockDefinition):
                     status="skipped", last_message="Recording is available in Active Runtime only.",
                     metadata={"save_audio": {"saved_files": [], "state": "simulation"}},
                 )
-            raw = context.input_value("command_in")
-            if raw is None or raw == "":
+            # input_value may concatenate several deliveries. Lifecycle JSON is
+            # event-scoped: preserve every start/stop and its original order.
+            if context.input_events:
+                pending = [event.value for event in context.input_events if event.input_port_id == 2]
+            else:
+                attribute = context.input_attribute("command_in")
+                pending = [attribute.value] if attribute is not None and attribute.status == "updated" else []
+            if not pending:
                 return BlockRuntimeResult(status="skipped", last_message="Listening on command_in.")
-            command = self._validate_command(raw)
+            if len(pending) > 64:
+                raise SaveAudioBlockError("Too many lifecycle commands in one activation (maximum 64).")
+            # Validate the complete batch before forwarding any command.
+            commands = [self._validate_command(raw) for raw in pending]
             sender = context.services.get("runtime_listener")
             if sender is None:
                 raise SaveAudioBlockError("The Save Audio listener is not loaded: Stop, then Run.")
-            sender.send(command)
+            for command in commands:
+                sender.send(command)
             return BlockRuntimeResult(
-                last_message=f"Command {command['action']} forwarded to the audio listener.",
-                logs=[f"[save-audio-command] {context.node_id}: {command['action']}."],
+                last_message=f"{len(commands)} command(s) forwarded to the audio listener.",
+                logs=[f"[save-audio-command] {context.node_id}: {command['action']}." for command in commands],
             )
         except (ValueError, RuntimeListenerError) as exc:
             return self._failure(context, str(exc))
