@@ -8,6 +8,10 @@
 Verified BloxSmith versions: **1.0.9** (bundled-block tests; see [test evidence](compatibility.json)).
 <!-- block-metadata:end -->
 
+[![SAVE AUDIO — Saves an incoming encoded audio stream to a file under explicit lifecycle commands.](media/thumbnail.webp)](media/cover.png)
+
+*Concept illustration. [Artwork and generation prompt](media/README.md).*
+
 
 Records an encoded audio stream to a chosen directory on explicit command. The block owns all file handling; the framework only provides transport and persistent listening.
 
