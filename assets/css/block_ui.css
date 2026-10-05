@@ -7,6 +7,15 @@
   color: #0e7490;
 }
 
+[data-block-release="save_audio@0.1.0"] .save-audio-node-card { min-width: 0; width: 100%; }
+[data-block-release="save_audio@0.1.0"] .save-audio-node-card h3 {
+  margin: 5px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+[data-block-release="save_audio@0.1.0"] .save-audio-node-card .node-owned-card-preview {
+  min-height: 0; max-width: 100%; line-height: 1.45; margin: 3px 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 [data-block-release="save_audio@0.1.0"] .save-audio-modal-body {
   display: grid;
   gap: 14px;

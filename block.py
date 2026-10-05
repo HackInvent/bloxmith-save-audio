@@ -22,11 +22,13 @@ import time
 import uuid
 
 from bloxsmith_app.block_api import (
+    APPLICATION_JSON,
     BlockDefinition,
     BlockRuntimeContext,
     BlockRuntimeListenerContext,
     BlockRuntimePreparation,
     BlockRuntimePreparationContext,
+    BlockRuntimeOutput,
     BlockRuntimeResult,
     RuntimeAudioFrame,
     RuntimeAudioStreamClient,
@@ -101,6 +103,7 @@ class _OpenAudioRecording:
 # FB5 - Validate path/template/timing settings and expose filesystem or transport failures explicitly.
 # FB6 - Declare separate audio/data inputs, listen on Run and no-op cleanly in centralized simulation.
 # FB7 - Render block-owned node-card, modal, inspector, directory browser, and UI actions.
+# FB8 - Publish one recording_ready JSON event only after successful nonempty file finalization.
 class SaveAudioBlock(BlockDefinition):
     """Persist each incoming continuous audio session as one project-side file."""
 
@@ -270,6 +273,11 @@ class SaveAudioBlock(BlockDefinition):
         if not isinstance(stream_id, str) or not stream_id.strip() or len(stream_id) > 128:
             raise SaveAudioBlockError("The command must identify a valid stream_id.")
         command = {"action": raw["action"], "stream_id": stream_id}
+        if "call_id" in raw:
+            call_id = raw["call_id"]
+            if not isinstance(call_id, str) or not call_id.strip() or len(call_id) > 128 or "\x00" in call_id:
+                raise SaveAudioBlockError("The optional call_id must be a non-empty bounded string.")
+            command["call_id"] = call_id
         if command["action"] == "stop":
             for key in ("frame_count", "byte_count"):
                 value = raw.get(key)
@@ -299,9 +307,12 @@ class SaveAudioBlock(BlockDefinition):
         frames_received = 0
         bytes_written = 0
 
-        def emit(state: str, message: str, *, stream_id: str = "") -> None:
+        def emit(state: str, message: str, *, stream_id: str = "", ready: dict[str, Any] | None = None) -> None:
             """Publish progress and optional affected stream identity through the worker, never audio."""
             context.emit_result(BlockRuntimeResult(
+                outputs=[BlockRuntimeOutput(port_id=int(port.id), port_name=port.name,
+                         value=json.dumps(ready, ensure_ascii=False), content_type=APPLICATION_JSON)
+                         for port in context.output_ports if ready is not None and port.name == "recording_ready"],
                 last_message=message, worker_received=message,
                 logs=[f"[save-audio] {context.node_id}: {message}"],
                 metadata={"save_audio": {
@@ -341,6 +352,11 @@ class SaveAudioBlock(BlockDefinition):
                     command = self._validate_command(received.payload)
                     stream_id = command["stream_id"]
                     if stream_id not in retired:
+                        if command.get("call_id") and stream_id in sessions:
+                            previous_call = sessions[stream_id].get("call_id")
+                            if previous_call and previous_call != command["call_id"]:
+                                raise SaveAudioBlockError("Conflicting call_id values for the same stream.")
+                            sessions[stream_id]["call_id"] = command["call_id"]
                         if command["action"] == "stop" and command["aborted"]:
                             # Producers such as TTS may stop intentionally during barge-in. Retire
                             # only that stream, even if start/audio are late, and keep the listener.
@@ -361,7 +377,8 @@ class SaveAudioBlock(BlockDefinition):
                         elif command["action"] == "start" and stream_id not in sessions:
                             if len(sessions) >= 4:
                                 raise SaveAudioBlockError("Too many concurrent audio sessions (maximum 4).")
-                            sessions[stream_id] = {"recording": None, "stop": None, "deadline": None}
+                            sessions[stream_id] = {"recording": None, "stop": None, "deadline": None,
+                                                   "call_id": command.get("call_id")}
                             emit("armed", "Start received; waiting for the audio stream.")
                             # Audio may precede start on the independent message link.
                             remaining = deque()
@@ -408,7 +425,11 @@ class SaveAudioBlock(BlockDefinition):
                             saved_files.append(self._finalize_recording(recording, context.root_dir))
                             saved_files[:] = saved_files[-20:]
                             session["recording"] = None
-                            emit("saved", f"File saved: {saved_files[-1]['path']}")
+                            ready = {**saved_files[-1], "event": "recording_ready",
+                                     "recording_id": uuid.uuid4().hex, "path": saved_files[-1]["absolute_path"]}
+                            if session.get("call_id"):
+                                ready["call_id"] = session["call_id"]
+                            emit("saved", f"File saved: {saved_files[-1]['path']}", stream_id=stream_id, ready=ready)
                         else:
                             emit("idle", "Empty capture: no file created.")
                         del sessions[stream_id]
@@ -664,12 +685,17 @@ class SaveAudioBlock(BlockDefinition):
 
     @staticmethod
     def _validate_port_contract(context: Any) -> None:
-        """Reject graph nodes that alter the fixed Save Audio sink shape."""
+        """Accept the fixed completion output while preserving legacy outputless nodes."""
 
         inputs = tuple(getattr(context, "input_ports", ()) or ())
         outputs = tuple(getattr(context, "output_ports", ()) or ())
-        if len(inputs) != 2 or outputs:
+        if len(inputs) != 2 or len(outputs) > 1:
             raise ValueError("Save Audio requires audio_stream audio_in and message command_in; recreate legacy nodes.")
+        if outputs:
+            output = outputs[0]
+            if (getattr(output, "id", 0) != 1 or getattr(output, "name", "") != "recording_ready"
+                    or getattr(output, "transport", "message") != "message"):
+                raise ValueError("Save Audio output must remain message port 1 named recording_ready.")
         ports = {getattr(port, "id", 0): port for port in inputs}
         audio_input = ports.get(1)
         if int(getattr(audio_input, "id", 0) or 0) != 1 or str(getattr(audio_input, "name", "") or "") != "audio_in":

@@ -15,6 +15,7 @@
 # - FB5 - Validate settings and surface transport/filesystem failures.
 # - FB6 - Enforce explicit audio/data inputs, centralized no-op, and listening without Play.
 # - FB7 - Render and serve the block-owned directory browser, UI assets, and actions.
+# - FB8 - A finalized-only event reaches a downstream display through the real browser ingress path.
 
 from __future__ import annotations
 
@@ -52,6 +53,8 @@ from bloxsmith_app.runtime_audio_streams import (  # noqa: E402
 from ui_smoke_common import (  # noqa: E402
     create_project_api,
     create_run_api,
+    data_edge,
+    display_node,
     expect,
     get_run_api,
     graph_payload,
@@ -105,7 +108,7 @@ def save_context(
         },
         input_ports=(audio_input(), SimpleNamespace(id=2, name="command_in", transport="message", required=True,
                      execution_requirement="required_for_execution", multiplicity="one")),
-        output_ports=(),
+        output_ports=(SimpleNamespace(id=1, name="recording_ready", transport="message"),),
         runtime_mode=runtime_mode,
         services=services,
         root_dir=root_dir,
@@ -132,7 +135,7 @@ def audio_document(output_dir: str = "exports/save-audio-e2e") -> dict:
     )
     return graph_payload(
         "F5.45 Save Audio",
-        [microphone, save],
+        [microphone, save, display_node("file-ready", "Completed recording", 740, 120)],
         [
             {
                 "id": "edge-microphone-save",
@@ -142,6 +145,7 @@ def audio_document(output_dir: str = "exports/save-audio-e2e") -> dict:
             },
             {"id": "edge-microphone-command", "from": {"node": "microphone-1", "port": 2},
              "to": {"node": "save-audio-1", "port": 2}, "kind": "data"},
+            data_edge("saved-file-ready", "save-audio-1", 1, "file-ready", 1),
         ],
     )
 
@@ -156,7 +160,7 @@ def test_model_preparation_validation_and_simulation() -> None:
     expect(block.model["bloxsmith_compatibility"] == [block.model["tested_with_bloxsmith"]],
            "Do not claim compatibility with untested framework versions.")
     inputs = block.model["ports"]["inputs"]
-    expect(len(inputs) == 2 and block.model["ports"]["outputs"] == [], "Save Audio must expose audio and data inputs, no output.")
+    expect(len(inputs) == 2 and block.model["ports"]["outputs"][0]["name"] == "recording_ready", "Save Audio must expose audio/data inputs and a completion event.")
     port = inputs[0]
     expect(port["name"] == "audio_in" and port["transport"] == "audio_stream", "The input must be audio_in/audio_stream.")
     expect(port["multiplicity"] == "one", "A continuous audio input must have multiplicity one.")
@@ -581,6 +585,13 @@ def test_graph_browser_ingress_end_to_end(*, play_sources: bool = False) -> None
         )
         expect(saved_paths[0].read_bytes() == WEBM_HEADER + b"-browser-body", "Saved WebSocket chunks must remain ordered and exact.")
         expect(not list(target_dir.glob(".*.part")), "Microphone Stop must leave no unfinished recording after the idle delay.")
+        run_after_capture = wait_for_run_predicate(
+            server, run_id, lambda state: state.get("node_statuses", {}).get("file-ready") == "success",
+            "recording_ready must execute its downstream consumer after the file is complete", timeout_sec=8)
+        ready = json.loads(run_after_capture["output_values"]["save-audio-1:1"]["value"])
+        expect(ready["event"] == "recording_ready" and ready["stream_id"] == descriptor["stream_id"],
+               "Completion must preserve source identity.")
+        expect(Path(ready["path"]).read_bytes() == WEBM_HEADER + b"-browser-body", "Completion path must be readable and complete.")
         if not play_sources:
             expect(run_after_capture.get("status") == "prepared", "Recording must not trigger a global Play.")
             expect(not any("seed batch" in line for line in run_after_capture.get("logs", [])),

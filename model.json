@@ -45,7 +45,16 @@
         "transport": "message"
       }
     ],
-    "outputs": []
+    "outputs": [
+      {
+        "id": 1,
+        "name": "recording_ready",
+        "title": "Recording ready",
+        "emits": ["application/json", "message/*"],
+        "multiplicity": "many",
+        "transport": "message"
+      }
+    ]
   },
   "config": {
     "output_dir": "exports/audio-streams",
@@ -58,7 +67,7 @@
     "allow_required_input": false,
     "default_required": false,
     "max_inputs": 2,
-    "max_outputs": 0,
+    "max_outputs": 1,
     "default_input_accepts": [
       "audio/*"
     ],

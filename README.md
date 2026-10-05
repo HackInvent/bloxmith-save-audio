@@ -21,7 +21,7 @@ Declared and tested framework version: **BloxSmith 1.0.9**, in `centralized` and
 
 - `audio_in` (1): `audio_stream` input, `audio/*`, mono or stereo Opus/AAC, `one` multiplicity, not required for data activations.
 - `command_in` (2): `message` input, `application/json`, `one` multiplicity, required for ordinary activations.
-- No outputs. Saved files and the latest state are reported in the block's runtime results.
+- `recording_ready` (1): JSON event emitted only after a nonempty file is successfully closed and finalized.
 
 Connect **both** `Microphone Stream.audio_out → audio_in` and `Microphone Stream.command_out → command_in`. An audio link alone does not trigger saving. For legacy nodes with only one input, recreate the block from the new model, restore its settings and reconnect its links. The implementation does not automatically migrate blueprints.
 
@@ -35,6 +35,25 @@ Connect **both** `Microphone Stream.audio_out → audio_in` and `Microphone Stre
 4. `{"action":"stop","stream_id":"session","frame_count":12,"byte_count":32000,"aborted":false}` announces completion. The block waits for the announced chunks, checks continuity and totals, then finalizes the file.
 5. A stop with `aborted: true` abandons only that session, without saving an incomplete file or stopping the run.
 6. The listener remains available for subsequent captures. Stopping the microphone or interrupting TTS does not stop the run.
+
+### Use a completed recording downstream
+
+`recording_ready` contains `event: "recording_ready"`, a unique `recording_id`, the
+absolute `path`, `stream_id`, codec/rate/channels, exact frame/byte counts and timestamps.
+An optional `call_id` is preserved when supplied by a start or stop command. Conflicting
+call identities for the same stream are refused; none is guessed from the filename.
+
+Connect this event to a Python mapping that returns its `path`, then to
+`OpenAI STT.audio`. This avoids transcribing the empty reservation or a partial file.
+Empty captures, aborts, timeouts and finalization errors emit no completion event.
+Duplicate stops remembered by the current listener do not repeat the event. Publication
+is a runtime notification, not a durable delivery/outbox guarantee across process crashes;
+deduplicate downstream work by `recording_id` when needed.
+
+Existing nodes with no output still record normally and retain runtime metadata. To wire
+the new completion event, recreate the node from the current model and restore its links
+and settings. No blueprint is migrated automatically. The declared version is unchanged;
+publishing this contract change requires a user-approved release.
 
 `execute_runtime` validates commands and forwards them to `runtime_listener.send`; it no longer contains a blocking loop. Listener state stays in local variables, never on the shared block definition.
 

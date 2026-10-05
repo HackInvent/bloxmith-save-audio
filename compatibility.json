@@ -5,7 +5,7 @@
   "maintained_by": "HackInvent",
   "source": {
     "algorithm": "block-source-v1",
-    "sha256": "33483b02a1fbd8d22f6a9709fc4f88e3cb567dba16be05ec7c3cf8b2763dc466"
+    "sha256": "e27ed592c04a8957817dd14b90b4e324ed3b4668df8bc1d7a58d58259b747680"
   },
   "bloxsmith_compatibility": [
     "1.0.9"
@@ -14,18 +14,19 @@
   "validations": [
     {
       "bloxsmith_version": "1.0.9",
-      "framework_commit": "b0807fcbb07f673cb6bfb6c104e1310ac3a3ab1b",
-      "framework_source_sha256": "11ca16f8418e77f7fd7a403f1f1350531c8e13600a92fbda97ae466d136eaf7c",
-      "tested_at": "2026-09-24T10:27:42.560567+00:00",
+      "framework_commit": "f1a87f6369d2acfb8be41d23ea849384cd461c86",
+      "framework_source_sha256": "66e36a13fd9a23a0a0576ec81552d6e479671db6db9b8692cc7486c5aac4f3b8",
+      "tested_at": "2026-10-04T16:59:08.626573+00:00",
       "status": "passed",
       "installation_mode": "bundled",
       "suite_paths": [
         "tests/F5.45_save_audio_block.py",
         "tests/F5.55_cancelled_streams.py",
-        "tests/F5.94_lifecycle_events.py"
+        "tests/F5.94_lifecycle_events.py",
+        "tests/F5.95_recording_ready.py"
       ],
-      "suite_count": 3,
-      "report_sha256": "ccc2bc0423e18c82c31042ef744ba6afbc637040d86ea02a5b28af2025651d63"
+      "suite_count": 4,
+      "report_sha256": "802fec6cacb4d2e5b5c40505f2a906660c62ee8a1921f9be8ac48a47d39457fb"
     }
   ]
 }
